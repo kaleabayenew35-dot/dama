@@ -22,7 +22,10 @@ export default defineConfig({
   preview: {
     port: 3000,
     host: '0.0.0.0',
-    allowedHosts: ['dama-game-6d2b.onrender.com'],
+    allowedHosts: [
+      'dama-game-6d2b.onrender.com',
+      'dama-kyw6.onrender.com',
+    ],
   },
 
   worker: {
