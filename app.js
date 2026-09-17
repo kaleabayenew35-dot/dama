@@ -20,6 +20,17 @@ const urlAuth = await initUrlAuth();
 // Sync any window.* set by urlAuth into our state store
 syncFromWindow();
 
+let aiEnabled = false;
+try {
+  const aiRes = await fetch(`${Socket.apiUrl}/ai`, { cache: 'no-store' });
+  const aiJson = await aiRes.json();
+  const aiConfig = aiJson?.data ?? aiJson;
+  aiEnabled = aiRes.ok && Boolean(aiConfig?.ai_enabled);
+} catch {
+  aiEnabled = false;
+}
+if (!aiEnabled) document.getElementById('playNowBtn')?.classList.add('hidden');
+
 /* ── 1. Telegram init ── */
 initTelegram();
 initErrorBoundary();
@@ -98,6 +109,10 @@ function showBetAuditModal(_betLog, _betAmount, _fetchError = null) {}
 
 /* ── startGame (called by UI buttons and socket handlers) ── */
 window.startGame = async function(mode, opponent) {
+  if (mode === 'ai' && !aiEnabled) {
+    alert('AI play is currently disabled.');
+    return false;
+  }
   const betAmount = Number(getState('currentBet') || 0);
 
   if (mode === 'ai' || (mode === 'pvp' && !getState('activeOnlineGame'))) {
@@ -497,6 +512,7 @@ async function fetchBotsFromDB() {
 }
 
 function openAiModal() {
+  if (!aiEnabled) return;
   const modal     = document.getElementById('aiModal');
   const container = document.getElementById('aiBotList');
   if (!modal || !container) return;
