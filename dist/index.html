@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="theme-color" content="#0d0d0d"/>
+  <title>Dama – Ethiopian Checkers</title>
+
+  <!-- Telegram Mini App SDK (must load first) -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script type="module" crossorigin src="/assets/index-CAeaqyEB.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CVacVe4x.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════
+       LOADING SCREEN
+  ════════════════════════════════════════════════════ -->
+  <div id="loader" class="loader-wrapper">
+    <div class="loader-bg"></div>
+
+    <div class="loader-content">
+      <!-- Animated board icon -->
+      <div class="loader-board">
+        <div class="lb-grid">
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div class="lb-pieces">
+          <div class="lb-piece white" style="--r:0;--c:1"></div>
+          <div class="lb-piece white" style="--r:0;--c:3"></div>
+          <div class="lb-piece white" style="--r:1;--c:0"></div>
+          <div class="lb-piece white" style="--r:1;--c:2"></div>
+          <div class="lb-piece black" style="--r:2;--c:1"></div>
+          <div class="lb-piece black" style="--r:2;--c:3"></div>
+          <div class="lb-piece black" style="--r:3;--c:0"></div>
+          <div class="lb-piece black" style="--r:3;--c:2"></div>
+        </div>
+      </div>
+
+      <h1 class="loader-title">DAMA</h1>
+      <p class="loader-subtitle">Ethiopian Checkers</p>
+
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+        <div class="progress-glow"></div>
+      </div>
+      <p class="loader-percent" id="loaderPercent">0%</p>
+
+      <div class="loader-dots">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       FRONT PAGE / MAIN MENU
+  ════════════════════════════════════════════════════ -->
+  <div id="mainMenu" class="main-menu hidden">
+
+    <canvas id="particleCanvas"></canvas>
+    <div class="bg-board-pattern"></div>
+
+    <!-- ── TOP BAR ── -->
+    <div class="top-bar">
+      <!-- Left: user info -->
+      <div class="tb-user">
+        <div class="tg-avatar" id="tgAvatar">♟</div>
+        <div class="tb-user-info">
+          <span class="tg-name" id="tgName">Player</span>
+          <div class="tb-balance-row">
+            <span class="tb-balance">💰 <span id="myBalance">…</span> ETB</span>
+            <button class="tb-bal-refresh" id="balRefreshBtn" title="Refresh balance">↻</button>
+            <span class="tb-bal-spinner hidden" id="balSpinner"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center: DAMA logo -->
+      <div class="tb-logo">
+        <span class="tb-logo-icon">♟</span>
+        <span class="tb-logo-text">DAMA</span>
+      </div>
+
+      <!-- Right: icon buttons + countdown -->
+      <div class="tb-right">
+        <button class="tb-icon-btn" id="howToPlayBtn" title="How to Play">
+          <span class="tb-icon-btn-icon">❓</span>
+        </button>
+        <button class="tb-icon-btn" id="historyBtn" title="Game History">
+          <span class="tb-icon-btn-icon">📜</span>
+        </button>
+        <div class="tb-countdown">
+          <div class="cd-ring">
+            <svg class="cd-svg" viewBox="0 0 40 40">
+              <circle class="cd-bg"    cx="20" cy="20" r="17"/>
+              <circle class="cd-arc"   cx="20" cy="20" r="17" id="cdArc"/>
+            </svg>
+            <span class="cd-num" id="cdNum">15</span>
+          </div>
+          <span class="cd-label">Next match</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BET INPUT BAR ── -->
+    <div class="bet-bar">
+      <span class="bet-bar-label">Your Bet</span>
+      <div class="bet-presets">
+        <button class="bet-preset" data-amount="10">10</button>
+        <button class="bet-preset" data-amount="50">50</button>
+        <button class="bet-preset" data-amount="100">100</button>
+        <button class="bet-preset" data-amount="250">250</button>
+        <button class="bet-preset" data-amount="500">500</button>
+      </div>
+      <div class="bet-input-wrap" id="betBalanceReadout">
+        <span class="bet-currency">BAL</span>
+        <span class="bet-balance-value" id="betBalanceValue">0</span>
+      </div>
+    </div>
+
+    <!-- ── MAIN BODY: split layout ── -->
+    <div class="home-body">
+
+      <!-- LEFT: Player list (takes most of screen) -->
+      <div class="home-left">
+        <div class="pl-header">
+          <span class="pl-title">Available Players</span>
+          <span class="online-dot-wrap">
+            <span class="online-dot"></span>
+            <span class="online-count" id="onlineCount">0 online</span>
+          </span>
+        </div>
+        <div class="players-list" id="playersList"></div>
+      </div>
+
+      <!-- RIGHT: quick-action sidebar -->
+      <div class="home-right">
+        <button class="sidebar-btn ai-btn" id="playNowBtn">
+          <span class="sb-icon">🤖</span>
+          <span class="sb-label">vs AI</span>
+          <div class="btn-shine"></div>
+        </button>
+        <div class="sidebar-divider"></div>
+
+        <!-- Piece Ball Colour Picker trigger -->
+        <div class="color-picker">
+          <span class="cp-label">Pieces</span>
+          <button class="cp-trigger" id="cpTrigger" title="Customize piece">
+            <span class="cp-trigger-ball" id="cpTriggerBall"></span>
+            <span class="cp-trigger-dots">⋮</span>
+          </button>
+        </div>
+
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-stats">
+          <div class="sbs-item">
+            <span class="sbs-num" id="myWins">0</span>
+            <span class="sbs-lbl">Wins</span>
+          </div>
+          <div class="sbs-item">
+            <span class="sbs-num red" id="myLosses">0</span>
+            <span class="sbs-lbl">Losses</span>
+          </div>
+          <div class="sbs-item">
+            <span class="sbs-num gold" id="myDraws">0</span>
+            <span class="sbs-lbl">Draws</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <p>© 2026 Dama · Ethiopia 🇪🇹</p>
+    </footer>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       GAME SCREEN
+  ════════════════════════════════════════════════════ -->
+  <div id="gameScreen" class="game-screen hidden">
+
+    <!-- Game Header -->
+    <header class="game-header">
+      <button class="gh-back" id="backToMenu">&#8592;</button>
+      <div class="gh-title">
+        <span class="badge-icon small">♟</span>
+        <span id="gameModeLabel">DAMA</span>
+      </div>
+      <div class="gh-controls">
+        <button class="gh-btn" id="undoBtn">↩</button>
+        <button class="gh-btn" id="restartBtn">↺</button>
+      </div>
+    </header>
+
+    <!-- Game ID badge -->
+    <div id="gameIdBadge" class="game-id-badge hidden">
+      <span class="gib-label">GAME ID</span>
+      <span id="gameIdValue" class="gib-value"></span>
+    </div>
+
+    <!-- ── Score strip ── -->
+    <div class="score-strip">
+      <div class="ss-player" id="panel1">
+        <div class="ss-avatar black-avatar">♟</div>
+        <div class="ss-info">
+          <span class="ss-name" id="p1name">Player 1</span>
+          <span class="ss-turn-pill hidden" id="p1turn">YOUR TURN</span>
+          <div class="ss-strikes" id="p1strikes">
+            <div class="ss-strike-dot" id="p1s1"></div>
+            <div class="ss-strike-dot" id="p1s2"></div>
+            <div class="ss-strike-dot" id="p1s3"></div>
+          </div>
+        </div>
+        <div class="ss-right">
+          <span class="ss-score" id="p1score">0</span>
+          <span class="ss-timer" id="p1timer">00:00</span>
+          <span class="cd-turn" id="cd-turn-1" style="display:none;">20</span>
+        </div>
+      </div>
+      <div class="ss-vs">VS</div>
+      <div class="ss-player" id="panel2">
+        <div class="ss-avatar white-avatar">♙</div>
+        <div class="ss-info">
+          <span class="ss-name" id="p2name">Computer</span>
+          <span class="ss-turn-pill hidden" id="p2turn">YOUR TURN</span>
+          <div class="ss-strikes" id="p2strikes">
+            <div class="ss-strike-dot" id="p2s1"></div>
+            <div class="ss-strike-dot" id="p2s2"></div>
+            <div class="ss-strike-dot" id="p2s3"></div>
+          </div>
+        </div>
+        <div class="ss-right">
+          <span class="ss-score" id="p2score">0</span>
+          <span class="ss-timer" id="p2timer">00:00</span>
+          <span class="cd-turn" id="cd-turn-2" style="display:none;">20</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Board -->
+    <div class="game-body">
+      <div class="game-center">
+        <div class="game-board-wrap">
+          <div class="game-board-labels-left">
+            <span>8</span><span>7</span><span>6</span><span>5</span>
+            <span>4</span><span>3</span><span>2</span><span>1</span>
+          </div>
+          <div class="game-board" id="gameBoard"></div>
+          <div class="game-board-labels-bottom">
+            <span>A</span><span>B</span><span>C</span><span>D</span>
+            <span>E</span><span>F</span><span>G</span><span>H</span>
+          </div>
+        </div>
+        <div class="game-status-bar" id="gameStatus">Select a piece to move</div>
+      </div>
+    </div>
+
+    <!-- Captured pieces row -->
+    <div class="captured-row">
+      <div class="cr-side">
+        <span class="cr-label">Captured</span>
+        <div class="pp-cap-pieces" id="p1captured"></div>
+      </div>
+      <div class="cr-side right">
+        <span class="cr-label">Captured</span>
+        <div class="pp-cap-pieces" id="p2captured"></div>
+      </div>
+    </div>
+
+    <!-- Difficulty selector removed -->
+  </div>
+
+  <!-- WIN MODAL -->
+  <div id="winModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-crown">👑</div>
+      <h2 class="modal-title" id="winTitle">Player 1 Wins!</h2>
+      <p class="modal-sub" id="winSub">Captured all pieces. Well played!</p>
+      <div class="modal-stats">
+        <div class="ms-item"><span id="ms-moves">0</span><small>Moves</small></div>
+        <div class="ms-item"><span id="ms-time">0:00</span><small>Time</small></div>
+        <div class="ms-item"><span id="ms-captured">0</span><small>Captured</small></div>
+      </div>
+      <div class="ms-prize-wrap hidden" id="ms-prize-wrap">
+        <div class="ms-prize-label">🏆 You Win</div>
+        <div class="ms-prize-amount"><span id="ms-prize">0</span> ETB</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="playAgainBtn">
+          <span>↺</span> Play Again
+          <div class="btn-shine"></div>
+        </button>
+        <button class="btn btn-secondary" id="menuBtn2">⌂ Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHALLENGE MODAL (INVITATION) -->
+  <div id="challengeModal" class="modal-overlay hidden">
+    <div class="modal-box animate-pulse">
+      <div class="modal-crown">⚔️</div>
+      <h2 class="modal-title" id="challengeTitle">Match Challenge!</h2>
+      <p class="modal-sub" id="challengeSub">Someone has challenged you.</p>
+      <div class="modal-stats" style="grid-template-columns: 1fr; margin-bottom: 20px;">
+        <div class="ms-item"><span id="challengeBet">100</span><small>ETB Bet</small></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="challengeAcceptBtn">
+          Accept Match
+          <div class="btn-shine"></div>
+        </button>
+        <button class="btn btn-secondary" id="challengeDeclineBtn">Decline</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WAITING MODAL (CHALLENGER SIDE) -->
+  <div id="waitingModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-crown">⏳</div>
+      <h2 class="modal-title">Waiting for Opponent</h2>
+      <p class="modal-sub" id="waitingSub">Challenging Player...</p>
+      <div class="loader-dots" style="margin-top: 15px; display: flex; justify-content: center; gap: 8px;">
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--accent);"></span>
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--accent); opacity: 0.6;"></span>
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--accent); opacity: 0.3;"></span>
+      </div>
+      <div class="modal-actions" style="margin-top: 25px;">
+        <button class="btn btn-secondary" id="waitingCancelBtn" style="width: 100%;">Cancel Challenge</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BET PLACING LOADING MODAL -->
+  <div id="betPlacingModal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width: 320px; padding: 25px 20px;">
+      <div class="modal-crown">💸</div>
+      <h2 class="modal-title" id="betPlacingTitle" style="font-size: 1.15rem;">Placing Bet</h2>
+      <p class="modal-sub" id="betPlacingSub" style="font-size: 0.75rem;">Processing transaction with token backend...</p>
+      <div class="loader-dots" style="margin-top: 15px; display: flex; justify-content: center; gap: 8px;">
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--accent);"></span>
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--accent); opacity: 0.6;"></span>
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--accent); opacity: 0.3;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BET ACCEPTED TOAST -->
+  <div id="betAcceptedToast" class="bet-accepted-toast">
+    <span>✔</span> <span id="betAcceptedMsg">Bet Accepted!</span>
+  </div>
+
+  <!-- DISCONNECTED / KICKED MODAL -->
+  <div id="kickedModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-crown">⚠️</div>
+      <h2 class="modal-title">Session Disconnected</h2>
+      <p class="modal-sub" id="kickedReason">You have been logged in on another device or tab.</p>
+      <div class="modal-actions" style="margin-top: 25px;">
+        <button class="btn btn-primary" onclick="window.location.reload();" style="width: 100%;">Reconnect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI OPPONENT SELECTOR MODAL -->
+  <div id="aiModal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width: 380px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column; padding: 22px 20px;">
+      <div class="modal-crown">🤖</div>
+      <h2 class="modal-title" style="margin-bottom: 2px;">Choose AI Opponent</h2>
+      <p class="modal-sub" style="margin-bottom: 12px;">Select one of the 15 bots to play against</p>
+      
+      <!-- List container with scrollbar -->
+      <div class="ai-bot-list" id="aiBotList">
+        <!-- Filled dynamically -->
+      </div>
+      
+      <div class="modal-actions" style="margin-top: 14px; width: 100%;">
+        <button class="btn btn-secondary" id="aiModalCloseBtn" style="width: 100%;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIECE CUSTOMIZER POPUP -->
+  <div id="cpModal" class="cp-modal-overlay hidden">
+    <div class="cp-modal-box">
+      <div class="cp-modal-header">
+        <span class="cp-modal-title">Customize Piece</span>
+        <button class="cp-modal-close" id="cpModalClose">✕</button>
+      </div>
+
+      <!-- Preview -->
+      <div class="cp-preview-row">
+        <div class="cp-preview-ball" id="cpPreviewBall"></div>
+        <div class="cp-preview-info">
+          <span class="cp-preview-name" id="cpPreviewName">Classic</span>
+          <span class="cp-preview-style" id="cpPreviewStyle">Solid</span>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="cp-tabs">
+        <button class="cp-tab active" data-tab="colors">🎨 Colors</button>
+        <button class="cp-tab" data-tab="style">✦ Style</button>
+      </div>
+
+      <!-- Tab: Colors -->
+      <div class="cp-tab-panel" id="cpPanelColors">
+        <div class="cp-grid" id="cpColorGrid"></div>
+      </div>
+
+      <!-- Tab: Style -->
+      <div class="cp-tab-panel hidden" id="cpPanelStyle">
+        <div class="cp-style-grid" id="cpStyleGrid"></div>
+      </div>
+
+      <!-- Set button -->
+      <button class="cp-set-btn" id="cpSetBtn">Set Piece ✔</button>
+    </div>
+  </div>
+
+  <!-- HOW TO PLAY MODAL -->
+  <div id="howToPlayModal" class="modal-overlay hidden">
+    <div class="modal-box htp-box">
+      <div class="htp-header">
+        <span class="htp-title">❓ How to Play</span>
+        <button class="htp-close" id="howToPlayClose">✕</button>
+      </div>
+      <div class="htp-body">
+
+        <div class="htp-section">
+          <div class="htp-section-title">🎯 Objective</div>
+          <p>Capture all of your opponent's pieces — or leave them with no legal moves — to win the game.</p>
+        </div>
+
+        <div class="htp-section">
+          <div class="htp-section-title">♟ Movement</div>
+          <ul>
+            <li>Pieces move <strong>diagonally forward</strong> one square at a time.</li>
+            <li>You can only move on the <strong>dark squares</strong>.</li>
+            <li>Tap a piece to select it, then tap a highlighted square to move.</li>
+          </ul>
+        </div>
+
+        <div class="htp-section">
+          <div class="htp-section-title">⚔️ Capturing</div>
+          <ul>
+            <li>Jump <strong>over</strong> an opponent's piece to capture it — the landing square must be empty.</li>
+            <li>If a capture is available, <strong>you must take it</strong>.</li>
+            <li>Chain multiple captures in a single turn when possible (<strong>multi-jump</strong>).</li>
+          </ul>
+        </div>
+
+        <div class="htp-section">
+          <div class="htp-section-title">👑 King (Dama)</div>
+          <ul>
+            <li>Reach the opponent's back row to promote your piece to a <strong>King (Dama)</strong>.</li>
+            <li>Kings move and capture <strong>in all four diagonal directions</strong>.</li>
+            <li>In Ethiopian Dama, kings can fly long distances — they are very powerful!</li>
+          </ul>
+        </div>
+
+        <div class="htp-section">
+          <div class="htp-section-title">💰 Betting</div>
+          <ul>
+            <li>Set your bet amount before challenging another player.</li>
+            <li>The winner takes the full pot from both players.</li>
+            <li>Make sure you have enough balance before entering a match.</li>
+          </ul>
+        </div>
+
+        <div class="htp-section">
+          <div class="htp-section-title">🤖 vs AI</div>
+          <ul>
+            <li>Tap <strong>vs AI</strong> to practice against one of 15 bots.</li>
+            <li>Bots range from <em>Very Easy</em> to <em>Very Hard</em>.</li>
+            <li>AI games do not cost any ETB — perfect for practice!</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY MODAL -->
+  <div id="historyModal" class="modal-overlay hidden">
+    <div class="modal-box hist-box">
+      <div class="htp-header">
+        <span class="htp-title">📜 Game History</span>
+        <button class="htp-close" id="historyClose">✕</button>
+      </div>
+      <div id="historyBody" class="hist-body">
+        <div class="hist-loading">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BET AUDIT MODAL -->
+  <div id="betAuditModal" class="modal-overlay hidden">
+    <div class="modal-box audit-box">
+      <div class="htp-header">
+        <span class="htp-title">💸 Bet Deduction Audit</span>
+        <button class="htp-close" id="betAuditClose">✕</button>
+      </div>
+      <div class="audit-body" id="betAuditBody">
+        <!-- Content will be injected dynamically -->
+      </div>
+      <div class="audit-footer">
+        <button class="btn btn-primary" id="betAuditCopyBtn">📋 Copy Audit JSON</button>
+        <button class="btn btn-secondary" id="betAuditCloseBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

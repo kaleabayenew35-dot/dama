@@ -1,0 +1,25 @@
+{
+  "name": "dama-frontend",
+  "version": "1.0.0",
+  "description": "Dama – Ethiopian Checkers frontend",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "vite preview --port 3000 --host 0.0.0.0",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "serve": "14.2.4"
+  },
+  "devDependencies": {
+    "vite": "^5.2.0",
+    "vitest": "^1.5.0"
+  },
+  "vitest": {
+    "environment": "node",
+    "include": ["tests/**/*.test.js"]
+  }
+}

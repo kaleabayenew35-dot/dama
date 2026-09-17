@@ -1,0 +1,578 @@
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   GAME SCREEN  (Telegram Mini App â€” mobile layout)
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+.game-screen {
+  min-height: 100vh; height: 100%;
+  display: flex; flex-direction: column;
+  background: radial-gradient(ellipse at 30% 20%, #1a0f00 0%, #0d0d0d 60%);
+  animation: menuReveal .4s ease;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+  overflow: hidden;
+  position: relative;
+}
+
+/* â”€â”€ Game Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.game-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(13,13,13,.9);
+  border-bottom: 1px solid rgba(212,160,23,.18);
+  backdrop-filter: blur(12px);
+  z-index: 10; flex-shrink: 0;
+}
+
+.gh-back {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+  color: var(--cream); font-size: 1.1rem;
+  cursor: pointer; display:flex; align-items:center; justify-content:center;
+  touch-action: manipulation; transition: var(--transition);
+}
+.gh-back:active { background: rgba(212,160,23,.2); color: var(--gold); }
+
+.gh-title {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: .95rem;
+  color: var(--gold); letter-spacing: .12em;
+}
+.badge-icon { width:38px;height:38px;background:linear-gradient(135deg,var(--gold-dim),var(--gold-light));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 4px 14px rgba(212,160,23,.4); }
+.badge-icon.small { width:26px;height:26px;font-size:.8rem;border-radius:6px; }
+
+.gh-controls { display: flex; gap: 6px; }
+.gh-btn {
+  height: 36px; padding: 0 12px; border-radius: 8px;
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1);
+  color: var(--cream); font-family:'Rajdhani',sans-serif; font-size:.9rem; font-weight:700;
+  cursor:pointer; transition:var(--transition); touch-action:manipulation;
+}
+.gh-btn:active { background:rgba(212,160,23,.2); color:var(--gold); }
+
+/* â”€â”€ Game ID badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.game-id-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 5px 14px;
+  background: rgba(0,0,0,.55);
+  border-bottom: 1px solid rgba(212,160,23,.12);
+  flex-shrink: 0;
+  animation: fadeInDown .3s ease both;
+}
+.game-id-badge.hidden { display: none !important; }
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.gib-label {
+  font-size: .5rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.gib-value {
+  font-family: 'Courier New', monospace;
+  font-size: .68rem;
+  font-weight: 700;
+  color: var(--gold-light);
+  letter-spacing: .06em;
+  background: rgba(212,160,23,.08);
+  border: 1px solid rgba(212,160,23,.2);
+  border-radius: 6px;
+  padding: 1px 8px;
+  user-select: all;
+}
+
+/* â”€â”€ Score Strip (replaces side panels) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.score-strip {
+  display: flex; align-items: center;
+  background: rgba(0,0,0,.4); border-bottom: 1px solid rgba(255,255,255,.06);
+  padding: 8px 12px; gap: 6px; flex-shrink: 0;
+}
+
+/* When I am BLACK (panel1), reverse the strip so my panel is on the right (bottom visually) */
+.game-screen[data-me="black"] .score-strip {
+  flex-direction: row-reverse;
+}
+
+/* "YOU" badge on my panel */
+.ss-me-badge {
+  font-size: .48rem; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--gold);
+  background: rgba(212,160,23,.14); border: 1px solid rgba(212,160,23,.28);
+  padding: 1px 5px; border-radius: 99px; width: fit-content;
+  margin-top: 1px;
+}
+.ss-player {
+  flex: 1; display: flex; align-items: center; gap: 8px;
+  padding: 7px 9px; border-radius: 10px; border: 1px solid rgba(255,255,255,.05);
+  transition: var(--transition);
+}
+.ss-active {
+  background: rgba(212,160,23,.1); border-color: rgba(212,160,23,.38);
+  box-shadow: 0 0 14px rgba(212,160,23,.07);
+}
+.ss-avatar {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: .95rem;
+  border: 2px solid rgba(255,255,255,.08); transition: var(--transition);
+}
+.black-avatar {
+  background: radial-gradient(circle at 35%,
+    var(--piece-b1, #555), var(--piece-b3, #111)
+  );
+}
+.white-avatar {
+  background: radial-gradient(circle at 35%,
+    var(--piece-w1, #eee), var(--piece-w3, #aaa)
+  );
+  color: var(--piece-b3, #333);
+}
+.ss-active .ss-avatar { border-color:var(--gold); box-shadow:0 0 10px rgba(212,160,23,.35); }
+.ss-info { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.ss-name { font-family:'Cinzel',serif; font-size:.75rem; font-weight:700; color:var(--cream); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ss-turn-pill {
+  font-size:.55rem; letter-spacing:.1em; font-weight:700; color:var(--gold);
+  background:rgba(212,160,23,.14); border:1px solid rgba(212,160,23,.28);
+  padding:2px 6px; border-radius:99px; width:fit-content; text-transform:uppercase;
+  animation:turnPulse 1.2s ease-in-out infinite;
+}
+@keyframes turnPulse { 0%,100%{opacity:.6} 50%{opacity:1} }
+.ss-right { display:flex; flex-direction:column; align-items:flex-end; gap:1px; flex-shrink:0; }
+.ss-score { font-family:'Cinzel',serif; font-size:1.15rem; font-weight:900; color:var(--gold); line-height:1; }
+.ss-timer { font-size:.6rem; color:var(--text-muted); letter-spacing:.05em; font-weight:600; }
+.ss-vs { font-family:'Cinzel',serif; font-size:.65rem; font-weight:700; color:var(--text-muted); flex-shrink:0; }
+
+/* â”€â”€ Turn countdown â”€â”€ */
+.cd-turn {
+  font-family: 'Cinzel', serif;
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: var(--gold-light);
+  line-height: 1;
+  min-width: 28px;
+  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  transition: color 0.3s;
+}
+.cd-turn.cd-urgent {
+  color: var(--red-light);
+  animation: cdPulse 0.5s ease-in-out infinite;
+}
+@keyframes cdPulse {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%       { transform: scale(1.2); opacity: 0.7; }
+}
+
+/* Panel danger state (â‰¤5s) */
+.ss-player.ss-danger {
+  border-color: rgba(231, 76, 60, 0.5) !important;
+  background: rgba(231, 76, 60, 0.08) !important;
+  box-shadow: 0 0 14px rgba(231, 76, 60, 0.15) !important;
+}
+
+/* Strike indicators */
+.ss-strikes {
+  display: flex;
+  gap: 3px;
+  margin-top: 2px;
+}
+.ss-strike-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(231,76,60,0.4);
+  border: 1px solid rgba(231,76,60,0.5);
+  transition: background 0.2s;
+}
+.ss-strike-dot.filled {
+  background: var(--red-light);
+  box-shadow: 0 0 4px rgba(231,76,60,0.6);
+}
+
+/* â”€â”€ Game Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.game-body {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  padding:8px 8px 4px; overflow:hidden;
+}
+
+/* â”€â”€ Player Panels (hidden â€” replaced by score strip) */
+.player-panel { display: none; }
+.pp-avatar, .pp-name, .pp-turn-indicator, .pp-captured, .pp-score, .pp-timer { display: none; }
+
+/* â”€â”€ Game Board â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.game-center { display:flex; flex-direction:column; align-items:center; gap:8px; width:100%; }
+
+.game-board-wrap { position:relative; padding:0 0 18px 18px; width:fit-content; }
+
+.game-board {
+  width:  min(calc(100vw - 28px), calc(100vh - 255px), 500px);
+  height: min(calc(100vw - 28px), calc(100vh - 255px), 500px);
+  display: grid; grid-template-columns: repeat(8,1fr);
+  border: 3px solid var(--board-border, var(--gold));
+  border-radius: 6px; overflow: hidden;
+  box-shadow:
+    0 0 0 5px rgba(212,160,23,.12),
+    0 14px 44px rgba(0,0,0,.85),
+    0 0 50px rgba(212,160,23,.18);
+  transition: border-color .3s ease;
+}
+
+.game-board-labels-left {
+  position:absolute; left:0; top:0;
+  height:min(calc(100vw - 28px),calc(100vh - 255px),500px);
+  display:flex; flex-direction:column;
+}
+.game-board-labels-left span,
+.game-board-labels-bottom span {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  font-size:.52rem; color:rgba(136,136,136,.55); font-weight:600; min-width:16px;
+}
+.game-board-labels-bottom {
+  position:absolute; bottom:0; left:18px;
+  width:min(calc(100vw - 28px),calc(100vh - 255px),500px); display:flex;
+}
+
+/* Flip labels when board is flipped (WHITE player perspective) */
+.board-flipped .game-board-labels-left {
+  flex-direction: column-reverse;
+}
+.board-flipped .game-board-labels-bottom {
+  flex-direction: row-reverse;
+}
+
+/* Cells */
+.gc {
+  aspect-ratio: 1;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; cursor: default;
+}
+.gd { background: var(--board-dark);  transition: background .3s ease; }
+.gl { background: var(--board-light); transition: background .3s ease; }
+
+/* â”€â”€ Selected origin cell â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.gc-selected {
+  background: rgba(212,160,23,.35) !important;
+  box-shadow: inset 0 0 0 2px var(--gold);
+}
+
+/* â”€â”€ Valid move destination dot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.gc-highlight {
+  cursor: pointer;
+  background: rgba(212,160,23,.18) !important;
+}
+
+/* Big gold dot on EMPTY highlight cells */
+.gc-highlight:not(.gc-highlight-piece)::after {
+  content: '';
+  position: absolute;
+  width: 38%; height: 38%;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 10px rgba(212,160,23,.9), 0 0 20px rgba(212,160,23,.5);
+  pointer-events: none;
+  animation: dotPop .25s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+/* Gold ring around a piece on a highlight cell (queen capture target) */
+.gc-highlight-piece::before {
+  content: '';
+  position: absolute; inset: 3px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 10px rgba(212,160,23,.8);
+  pointer-events: none;
+  z-index: 1;
+  animation: dotPop .25s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+@keyframes dotPop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* â”€â”€ Captured cell flash â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.gc-captured { animation: capFlash .45s ease !important; }
+@keyframes capFlash {
+  0%,100% { background: inherit; }
+  40%     { background: rgba(231,76,60,.65) !important; }
+}
+
+/* â”€â”€ Pieces â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.gp {
+  width: 78%; height: 78%;
+  border-radius: 50%;
+  position: relative; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  user-select: none; touch-action: manipulation;
+  transition: transform .18s ease, box-shadow .18s ease;
+  flex-shrink: 0;
+}
+
+/* Black piece â€” uses theme variables, falls back to classic */
+.gp-b {
+  background: radial-gradient(circle at 32% 28%,
+    var(--piece-b1, #555)  0%,
+    var(--piece-b2, #222) 50%,
+    var(--piece-b3, #000) 100%
+  );
+  box-shadow:
+    0 4px 10px rgba(0,0,0,.85),
+    inset 0 2px 5px var(--piece-bShadow, rgba(255,255,255,.22)),
+    inset 0 -2px 4px rgba(0,0,0,.7);
+  border: 2px solid var(--piece-bBorder, rgba(255,255,255,.1));
+}
+
+/* White piece */
+.gp-w {
+  background: radial-gradient(circle at 32% 28%,
+    var(--piece-w1, #fff)  0%,
+    var(--piece-w2, #ddd) 50%,
+    var(--piece-w3, #aaa) 100%
+  );
+  box-shadow:
+    0 4px 10px rgba(0,0,0,.6),
+    inset 0 2px 5px var(--piece-wShadow, rgba(255,255,255,.95)),
+    inset 0 -2px 4px rgba(0,0,0,.18);
+  border: 2px solid var(--piece-wBorder, rgba(0,0,0,.08));
+}
+
+/* King â†’ Queen piece */
+.gp-king {
+  /* Queen is slightly larger than a regular piece */
+  width: 84% !important;
+  height: 84% !important;
+  border-width: 2px !important;
+  position: relative;
+}
+
+/* Black queen */
+.gp-b.gp-king {
+  background: radial-gradient(circle at 32% 28%,
+    var(--piece-b1, #4a4a4a) 0%,
+    var(--piece-b2, #1a1a1a) 50%,
+    var(--piece-b3, #000)    100%
+  );
+  box-shadow:
+    0 0 0 2px var(--gold),
+    0 5px 14px rgba(0,0,0,.9),
+    inset 0 2px 5px var(--piece-bShadow, rgba(255,255,255,.15));
+  border-color: var(--gold) !important;
+}
+
+/* White queen */
+.gp-w.gp-king {
+  background: radial-gradient(circle at 32% 28%,
+    var(--piece-w1, #fff)   0%,
+    var(--piece-w2, #f5e6c8) 50%,
+    var(--piece-w3, #d4a017) 100%
+  );
+  box-shadow:
+    0 0 0 2px var(--gold),
+    0 5px 14px rgba(0,0,0,.7),
+    inset 0 2px 5px var(--piece-wShadow, rgba(255,255,255,.9));
+  border-color: var(--gold) !important;
+}
+
+/* Queen SVG fills the piece */
+.queen-svg {
+  width: 78%;
+  height: 78%;
+  display: block;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,.8));
+  animation: queenAppear .4s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+@keyframes queenAppear {
+  from { transform: scale(0) rotate(-30deg); opacity: 0; }
+  to   { transform: scale(1) rotate(0deg);   opacity: 1; }
+}
+
+/* Locked piece during capture chain â€” gold pulse ring */
+.gp-locked {
+  animation: lockedPulse .7s ease-in-out infinite !important;
+}
+
+@keyframes lockedPulse {
+  0%,100% { box-shadow: 0 0 0 2px var(--gold), 0 0 8px rgba(212,160,23,.4); }
+  50%     { box-shadow: 0 0 0 5px var(--gold), 0 0 20px rgba(212,160,23,.9); }
+}
+
+/* Hover lift */
+.gp:active { transform: scale(1.08) translateY(-2px); }
+
+/* â”€â”€ Selected piece â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.gp-sel {
+  transform: scale(1.18) translateY(-5px) !important;
+  box-shadow:
+    0 0 0 3px var(--gold),
+    0 8px 22px rgba(212,160,23,.7),
+    inset 0 2px 5px rgba(255,255,255,.3) !important;
+  border-color: var(--gold) !important;
+  z-index: 2;
+}
+
+/* â”€â”€ Must-capture piece â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.gp-must {
+  animation: mustPulse 1s ease-in-out infinite;
+  border-color: var(--red-light) !important;
+}
+@keyframes mustPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(231,76,60,0), 0 4px 10px rgba(0,0,0,.8); }
+  50%     { box-shadow: 0 0 0 5px rgba(231,76,60,.5), 0 4px 10px rgba(0,0,0,.8); }
+}
+
+/* â”€â”€ Moving animation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.gp-moving { animation: pieceJump .22s ease; }
+
+/* â”€â”€ P1 / P2 label when both players share the same ball colour â”€â”€ */
+.gp-player-tag {
+  position: absolute;
+  font-size: 7px;
+  font-weight: 900;
+  font-family: 'Rajdhani', sans-serif;
+  color: #fff;
+  text-shadow: 0 0 3px rgba(0,0,0,.95), 0 1px 2px rgba(0,0,0,.8);
+  letter-spacing: -.3px;
+  pointer-events: none;
+  line-height: 1;
+  user-select: none;
+}
+
+/* â”€â”€ Ball shape variants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+/* Disc (default) â€” flat standard circle */
+.gp-shape-disc { border-radius: 50%; }
+
+/* Dome â€” taller highlight, puffed look */
+.gp-shape-dome {
+  border-radius: 50%;
+  box-shadow: inset 0 -4px 8px rgba(0,0,0,.4),
+              inset 0 4px 10px rgba(255,255,255,.35),
+              0 4px 12px rgba(0,0,0,.5) !important;
+}
+
+/* Neon â€” thin ring glow, dark fill */
+.gp-shape-neon {
+  border-radius: 50%;
+  border-width: 3px !important;
+  box-shadow: 0 0 8px var(--piece-bBorder,#fff),
+              0 0 18px var(--piece-bBorder,#fff),
+              inset 0 0 6px rgba(255,255,255,.15) !important;
+}
+
+/* Metal â€” flat with sharp edge shine streak */
+.gp-shape-metal {
+  border-radius: 50%;
+  box-shadow: inset -2px -3px 6px rgba(0,0,0,.5),
+              inset 3px 4px 8px rgba(255,255,255,.55),
+              0 3px 10px rgba(0,0,0,.55) !important;
+}
+.gp-shape-metal::after {
+  content:''; position:absolute;
+  top:14%; left:18%; width:30%; height:14%;
+  background:rgba(255,255,255,.55);
+  border-radius:50%; transform:rotate(-30deg);
+  pointer-events:none;
+}
+
+/* Wood â€” ring grooves via border + inset shadows */
+.gp-shape-wood {
+  border-radius: 50%;
+  outline: 2px solid rgba(0,0,0,.18);
+  outline-offset: -4px;
+  box-shadow: inset 0 2px 5px rgba(255,255,255,.2),
+              inset 0 -3px 6px rgba(0,0,0,.4),
+              0 3px 8px rgba(0,0,0,.5) !important;
+}
+
+/* Crystal â€” very bright, almost transparent center */
+.gp-shape-crystal {
+  border-radius: 50%;
+  box-shadow: inset 0 2px 12px rgba(255,255,255,.7),
+              inset 2px 4px 8px rgba(255,255,255,.4),
+              0 2px 12px rgba(255,255,255,.3),
+              0 4px 14px rgba(0,0,0,.4) !important;
+}
+.gp-shape-crystal::before {
+  content:''; position:absolute;
+  top:12%; left:20%; width:28%; height:22%;
+  background:rgba(255,255,255,.75);
+  border-radius:50%; transform:rotate(-25deg);
+  pointer-events:none;
+}
+
+/* Shadow â€” dark phantom, minimal highlight */
+.gp-shape-shadow {
+  border-radius: 50%;
+  box-shadow: inset 0 1px 3px rgba(255,255,255,.08),
+              0 0 14px var(--piece-bShadow,rgba(100,100,255,.4)),
+              0 3px 6px rgba(0,0,0,.8) !important;
+  filter: brightness(.85);
+}
+
+/* Marble â€” slightly flattened, stone-veined look via pseudo gradient */
+.gp-shape-marble {
+  border-radius: 50%;
+  box-shadow: inset -1px -2px 5px rgba(0,0,0,.3),
+              inset 2px 3px 7px rgba(255,255,255,.4),
+              0 3px 9px rgba(0,0,0,.45) !important;
+}
+.gp-shape-marble::after {
+  content:''; position:absolute; inset:0;
+  border-radius:50%;
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0%, transparent 28%,
+    rgba(255,255,255,.07) 29%, rgba(255,255,255,.07) 31%,
+    transparent 32%, transparent 60%,
+    rgba(0,0,0,.06) 61%, rgba(0,0,0,.06) 63%
+  );
+  pointer-events:none;
+}
+
+/* Shared pseudo-element needs position:relative on gp (already set) */
+.gp-shape-metal::after,
+.gp-shape-crystal::before,
+.gp-shape-marble::after { z-index:1; }
+@keyframes pieceJump {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.2) translateY(-6px); }
+  100% { transform: scale(1); }
+}
+
+/* Status bar */
+.game-status-bar {
+  padding:7px 14px; background:rgba(0,0,0,.4); border:1px solid rgba(255,255,255,.07);
+  border-radius:8px; font-size:.8rem; letter-spacing:.04em; color:var(--cream);
+  width:min(calc(100vw - 28px),calc(100vh - 255px),500px); text-align:center;
+}
+
+/* Captured row */
+.captured-row {
+  display:flex; justify-content:space-between; flex-shrink:0;
+  padding:5px 14px; border-top:1px solid rgba(255,255,255,.05);
+}
+
+/* Mirror captured row when I am BLACK (same axis as score strip flip) */
+.game-screen[data-me="black"] .captured-row {
+  flex-direction: row-reverse;
+}
+.cr-side { display:flex; flex-direction:column; gap:3px; }
+.cr-side.right { align-items:flex-end; }
+.cr-label { font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-muted); }
+.pp-cap-pieces { display:flex; flex-wrap:wrap; gap:3px; max-width:130px; }
+.cap-dot { width:9px; height:9px; border-radius:50%; animation:capPop .25s ease; }
+.cap-b { background:radial-gradient(circle at 35%,#555,#111); }
+.cap-w { background:radial-gradient(circle at 35%,#eee,#aaa); }
+@keyframes capPop { from{transform:scale(0)} to{transform:scale(1)} }
+
+/* Difficulty bar removed */
+

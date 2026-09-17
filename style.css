@@ -1,0 +1,11 @@
+/* ═══════════════════════════════════════════
+   style.css — Entry point only.
+   Imports logical partials; Vite bundles these
+   into a single output CSS file at build time.
+   No visual change — same rules, same order.
+═══════════════════════════════════════════ */
+@import './styles/_base.css';
+@import './styles/_loader.css';
+@import './styles/_main-menu.css';
+@import './styles/_game-screen.css';
+@import './styles/_modals.css';
