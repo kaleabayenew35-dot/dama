@@ -72,8 +72,9 @@ export const Socket = {
       const apiToken = windowRef.DAMA_API_TOKEN
         || localStorageRef.getItem('dama_api_token')
         || null;
+      const launchToken = new URLSearchParams(windowRef.location?.search || '').get('launch');
 
-      this.send('join', { playerId, sessionToken, ...(apiToken ? { apiToken } : {}) });
+      this.send('join', { playerId, sessionToken, ...(apiToken ? { apiToken } : {}), ...(launchToken ? { launchToken } : {}) });
 
       // Flush any messages that were queued before the socket opened
       while (_sendQueue.length > 0) {

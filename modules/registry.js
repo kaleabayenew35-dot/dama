@@ -28,6 +28,8 @@ export async function fetchWithToken(url, options = {}) {
 
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   headers['X-API-Token'] = apiToken;
+  const launchToken = new URLSearchParams(windowRef.location?.search || '').get('launch');
+  if (launchToken) headers['X-Launch-Token'] = launchToken;
   return fetch(url, { ...options, headers });
 }
 

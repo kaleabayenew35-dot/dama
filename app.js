@@ -55,7 +55,7 @@ async function sendStartBet(gameId, betAmount, mode, player2Id = null) {
   try {
     const res = await fetch(`${apiUrl}/games/start-bet`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'X-API-Token': apiToken },
+      headers: { 'Content-Type': 'application/json', 'X-API-Token': apiToken, 'X-Launch-Token': launch },
       body: JSON.stringify({ gameId, playerId, launch, betAmount, mode, player2Id }),
       signal: AbortSignal.timeout(8000),
     });
