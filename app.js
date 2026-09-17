@@ -40,11 +40,11 @@ setState('refreshBalance', refreshBalance);   // engine endGame calls this
  */
 async function sendStartBet(gameId, betAmount, mode, player2Id = null) {
   const playerId = getState('tgUserId');
-  const phone    = getState('damaPhone');
   const apiToken = getState('damaApiToken') || localStorage.getItem('dama_api_token') || '';
+  const launch   = new URLSearchParams(window.location.search).get('launch') || '';
   const apiUrl   = Socket.apiUrl;
 
-  if (!playerId || !phone || !apiUrl) return false;
+  if (!playerId || !apiToken || !launch || !apiUrl) return false;
 
   const loader = document.getElementById('betPlacingModal');
   if (loader) {
@@ -56,7 +56,7 @@ async function sendStartBet(gameId, betAmount, mode, player2Id = null) {
     const res = await fetch(`${apiUrl}/games/start-bet`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'X-API-Token': apiToken },
-      body: JSON.stringify({ gameId, playerId, phone, betAmount, mode, player2Id }),
+      body: JSON.stringify({ gameId, playerId, launch, betAmount, mode, player2Id }),
       signal: AbortSignal.timeout(8000),
     });
 
