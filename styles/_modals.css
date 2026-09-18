@@ -767,3 +767,69 @@
   transform: translateX(-50%) translateY(0);
 }
 
+
+
+/* ── Win modal ✕ close button ──────────────────────────────── */
+.modal-close-x {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.07);
+  color: var(--text-muted);
+  font-size: .85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .2s, color .2s, transform .15s;
+  line-height: 1;
+}
+.modal-close-x:active { transform: scale(.88); }
+.modal-close-x:hover  { background: rgba(255,255,255,.14); color: var(--cream); }
+
+/* make modal-box relative so the absolute button works */
+#winModal .modal-box { position: relative; }
+
+/* ── Win modal auto-close countdown bar ───────────────────── */
+.win-countdown-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.win-countdown-bar {
+  width: 100%;
+  height: 4px;
+  border-radius: 99px;
+  background: rgba(212,160,23,.18);
+  overflow: hidden;
+  position: relative;
+}
+.win-countdown-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
+  border-radius: 99px;
+  transform-origin: left center;
+  /* animation is applied via JS by adding a class */
+}
+.win-countdown-bar.running::after {
+  animation: countdownShrink 3s linear forwards;
+}
+@keyframes countdownShrink {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+.win-countdown-txt {
+  font-size: .62rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(212,160,23,.55);
+  font-weight: 600;
+}

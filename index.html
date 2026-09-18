@@ -256,6 +256,7 @@
   <!-- WIN MODAL -->
   <div id="winModal" class="modal-overlay hidden">
     <div class="modal-box">
+      <button class="modal-close-x" id="winModalClose" aria-label="Close">✕</button>
       <div class="modal-crown">👑</div>
       <h2 class="modal-title" id="winTitle">Player 1 Wins!</h2>
       <p class="modal-sub" id="winSub">Captured all pieces. Well played!</p>
@@ -267,6 +268,11 @@
       <div class="ms-prize-wrap hidden" id="ms-prize-wrap">
         <div class="ms-prize-label">🏆 You Win</div>
         <div class="ms-prize-amount"><span id="ms-prize">0</span> ETB</div>
+      </div>
+      <!-- 3-second auto-close countdown bar -->
+      <div class="win-countdown-wrap" id="winCountdownWrap">
+        <div class="win-countdown-bar" id="winCountdownBar"></div>
+        <span class="win-countdown-txt" id="winCountdownTxt">Closing in 3s</span>
       </div>
       <div class="modal-actions">
         <button class="btn btn-primary" id="playAgainBtn">

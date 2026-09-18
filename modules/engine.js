@@ -900,6 +900,51 @@ function onTurnTimeout() {
 }
 
 /* ── Win modal ── */
+let _winAutoCloseTimer = null;
+let _winCountdownInterval = null;
+
+function _clearWinTimers() {
+  if (_winAutoCloseTimer)     { clearTimeout(_winAutoCloseTimer);   _winAutoCloseTimer = null; }
+  if (_winCountdownInterval)  { clearInterval(_winCountdownInterval); _winCountdownInterval = null; }
+}
+
+function _closeWinModal() {
+  _clearWinTimers();
+  const modal = document.getElementById('winModal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  modal.classList.remove('modal-show');
+}
+
+function _startWinCountdown(onExpire) {
+  _clearWinTimers();
+
+  const bar  = document.getElementById('winCountdownBar');
+  const txt  = document.getElementById('winCountdownTxt');
+  const wrap = document.getElementById('winCountdownWrap');
+
+  if (wrap) wrap.style.display = '';
+  if (bar)  {
+    // Reset then trigger animation
+    bar.classList.remove('running');
+    void bar.offsetWidth; // reflow to restart animation
+    bar.classList.add('running');
+  }
+
+  let secs = 3;
+  if (txt) txt.textContent = `Closing in ${secs}s`;
+  _winCountdownInterval = setInterval(() => {
+    secs--;
+    if (txt) txt.textContent = secs > 0 ? `Closing in ${secs}s` : 'Closing…';
+    if (secs <= 0) { _clearWinTimers(); }
+  }, 1000);
+
+  _winAutoCloseTimer = setTimeout(() => {
+    _clearWinTimers();
+    if (typeof onExpire === 'function') onExpire();
+  }, 3000);
+}
+
 function showWinModal(name, reason, iLocalWin = false, betAmt = 0, winnerPayout = 0, isDraw = false, drawRefund = 0) {
   document.getElementById('winTitle').textContent    = isDraw ? 'Draw!' : name + ' Wins!';
   document.getElementById('winSub').textContent      = reason + '. Well played!';
@@ -913,14 +958,12 @@ function showWinModal(name, reason, iLocalWin = false, betAmt = 0, winnerPayout 
 
   if (prizeWrap && prizeEl) {
     if (isDraw && betAmt > 0) {
-      // Draw: both players lose a small fee, rest is refunded
       const refund = drawRefund > 0 ? drawRefund : Math.round(betAmt * 0.95);
       const fee    = betAmt - refund;
       if (prizeLbl) prizeLbl.textContent = '🤝 Draw — Partial Refund';
       prizeEl.textContent = refund.toLocaleString();
       prizeWrap.classList.remove('hidden');
       prizeWrap.style.borderColor = 'rgba(240,201,74,.4)';
-      // Immediately update displayed balance: subtract fee
       const cur = Number(window.DAMA_BALANCE ?? 0);
       if (cur > 0) {
         window.DAMA_BALANCE = Math.max(0, cur - fee);
@@ -935,7 +978,6 @@ function showWinModal(name, reason, iLocalWin = false, betAmt = 0, winnerPayout 
         prizeEl.textContent = '+' + prize.toLocaleString();
         prizeWrap.classList.remove('hidden');
         prizeWrap.style.borderColor = 'rgba(76,222,128,.4)';
-        // Immediately credit balance
         const cur = Number(window.DAMA_BALANCE ?? 0);
         window.DAMA_BALANCE = cur + prize;
         const balEl = document.getElementById('myBalance');
@@ -947,8 +989,6 @@ function showWinModal(name, reason, iLocalWin = false, betAmt = 0, winnerPayout 
         prizeWrap.classList.remove('hidden');
         prizeWrap.style.borderColor = 'rgba(231,76,60,.4)';
         prizeWrap.style.color = '#e74c3c';
-        // Immediately deduct from balance display (already deducted at game start)
-        // Balance stays as-is; loser's bet was already taken at challenge_accept
       }
     } else {
       prizeWrap.classList.add('hidden');
@@ -961,81 +1001,82 @@ function showWinModal(name, reason, iLocalWin = false, betAmt = 0, winnerPayout 
 
   const playAgainBtn = document.getElementById('playAgainBtn');
   const menuBtn      = document.getElementById('menuBtn2');
-  const originalLabel = playAgainBtn?.innerHTML || '';
+  const closeXBtn    = document.getElementById('winModalClose');
 
   clearRematchUi();
 
-  if (G.isOnlinePvP && G.opponent?.id) {
-    const updateLabel = () => {
-      if (playAgainBtn) playAgainBtn.innerHTML = `<span>↺</span> Play Again <div class="btn-shine"></div>`;
-    };
-    updateLabel();
-    const onClick = () => {
-      clearRematchUi();
-      requestRematch();
-    };
-    playAgainBtn?.addEventListener('click', onClick, { once: true });
-    menuBtn?.addEventListener('click', () => {
-      hideRematchPrompt();
-      modal.classList.add('hidden'); modal.classList.remove('modal-show');
-      clearInterval(G.timerInterval);
+  // ── ✕ close button — always dismisses immediately ─────────────
+  if (closeXBtn) {
+    const newCloseX = closeXBtn.cloneNode(true);
+    closeXBtn.parentNode.replaceChild(newCloseX, closeXBtn);
+    newCloseX.addEventListener('click', () => {
+      _closeWinModal();
       showScreen('mainMenu');
       renderPlayerList();
     });
-    return;
   }
 
-  if (G.mode === 'ai' || G.mode === 'pvp') {
-    const startFreshGame = () => {
-      modal.classList.add('hidden');
-      modal.classList.remove('modal-show');
-      if (G.mode === 'ai') {
-        startGame('ai', G.opponent || null);
-      } else {
-        startGame('pvp', G.opponent || null);
-      }
-    };
+  // Cancel auto-close when user actively interacts
+  function cancelAutoClose() {
+    _clearWinTimers();
+    const wrap = document.getElementById('winCountdownWrap');
+    if (wrap) wrap.style.display = 'none';
+  }
+
+  // Helper: close + go to menu
+  function goMenu() {
+    _closeWinModal();
+    clearInterval(G.timerInterval);
+    showScreen('mainMenu');
+    renderPlayerList();
+  }
+
+  // ── Online PvP (rematch flow) ──────────────────────────────────
+  if (G.isOnlinePvP && G.opponent?.id) {
+    if (playAgainBtn) playAgainBtn.innerHTML = `<span>↺</span> Play Again <div class="btn-shine"></div>`;
 
     playAgainBtn?.addEventListener('click', () => {
-      startFreshGame();
+      cancelAutoClose();
+      clearRematchUi();
+      requestRematch();
     }, { once: true });
 
     menuBtn?.addEventListener('click', () => {
-      modal.classList.add('hidden'); modal.classList.remove('modal-show');
-      clearInterval(G.timerInterval);
-      showScreen('mainMenu');
-      renderPlayerList();
+      cancelAutoClose();
+      hideRematchPrompt();
+      goMenu();
     });
+
+    // 3-second auto-close → menu for online games
+    _startWinCountdown(goMenu);
     return;
   }
 
-  let remaining = 10;
-  function updateAutoLabel() {
-    if (playAgainBtn)
-      playAgainBtn.innerHTML = `<span>↺</span> Play Again <span style="opacity:.6;font-size:.8em;">(${remaining}s)</span>`;
-  }
-  updateAutoLabel();
+  // ── AI or local PvP ───────────────────────────────────────────
+  if (G.mode === 'ai' || G.mode === 'pvp') {
+    if (playAgainBtn) playAgainBtn.innerHTML = `<span>↺</span> Play Again <div class="btn-shine"></div>`;
 
-  function cancelAuto() {
-    clearInterval(autoTimer);
-    if (playAgainBtn) playAgainBtn.innerHTML = originalLabel;
-    playAgainBtn?.removeEventListener('click', cancelAuto);
-    menuBtn?.removeEventListener('click', cancelAuto);
-  }
-  playAgainBtn?.addEventListener('click', cancelAuto);
-  menuBtn?.addEventListener('click', cancelAuto);
+    playAgainBtn?.addEventListener('click', () => {
+      cancelAutoClose();
+      _closeWinModal();
+      if (G.mode === 'ai') startGame('ai', G.opponent || null);
+      else startGame('pvp', G.opponent || null);
+    }, { once: true });
 
-  const autoTimer = setInterval(() => {
-    remaining -= 1; updateAutoLabel();
-    if (remaining <= 0) {
-      clearInterval(autoTimer);
-      if (playAgainBtn) playAgainBtn.innerHTML = originalLabel;
-      modal.classList.add('hidden'); modal.classList.remove('modal-show');
-      clearInterval(G.timerInterval);
-      showScreen('mainMenu');
-      renderPlayerList();
-    }
-  }, 1000);
+    menuBtn?.addEventListener('click', () => {
+      cancelAutoClose();
+      goMenu();
+    });
+
+    // 3-second auto-close → menu
+    _startWinCountdown(goMenu);
+    return;
+  }
+
+  // ── Fallback (should not normally be reached) ─────────────────
+  playAgainBtn?.addEventListener('click', () => { cancelAutoClose(); _closeWinModal(); }, { once: true });
+  menuBtn?.addEventListener('click', () => { cancelAutoClose(); goMenu(); });
+  _startWinCountdown(goMenu);
 }
 
 export function requestRematch() {
