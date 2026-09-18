@@ -292,7 +292,7 @@ export async function refreshBalance(silent = false) {
   if (!silent) setBalanceLoading(true);
   try {
     const data = await fetchPlayerBalance(auth.token, auth.launch);
-    if (data.balance === null || data.username === null) {
+    if (data.balance === null && data.username === null) {
       // Don't flash an error on periodic silent refreshes — just skip quietly
       if (silent) {
         console.info('[urlAuth] refreshBalance: got null data, skipping silently');
@@ -364,9 +364,11 @@ export function initUrlAuth() {
 
         // Backend returned nulls — the owner backend or launch-token
         // verification is still waking up. Auto-retry if we have attempts left.
-        if (data.balance === null || data.username === null) {
+        // Only username is required — balance can legitimately be 0 or null
+        // (owner backend may be asleep; we fall back to the launch-token value).
+        if (data.username === null) {
           if (retriesLeft > 0) {
-            console.warn(`[urlAuth] Got null balance/username — retrying in ${AUTO_RETRY_DELAY_MS}ms (${retriesLeft} left)`);
+            console.warn(`[urlAuth] Got null username — retrying in ${AUTO_RETRY_DELAY_MS}ms (${retriesLeft} left)`);
             _showRetryingStatus(retriesLeft);
             setTimeout(() => attempt(retriesLeft - 1), AUTO_RETRY_DELAY_MS);
             return;

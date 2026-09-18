@@ -17,7 +17,11 @@ export async function fetchWithToken(url, options = {}) {
     try {
       await authReady;
     } catch (err) {
-      throw new Error(`Authentication failed before request: ${err?.message || err}`);
+      // Auth gate rejected — this happens when the owner backend returns null
+      // data on cold start. Log a warning but continue: DAMA_API_TOKEN may
+      // still be set from params even when the gate didn't fully resolve, so
+      // subsequent requests can still work once the backend wakes up.
+      console.warn(`[registry] Auth gate rejected, continuing anyway: ${err?.message || err}`);
     }
   }
 
