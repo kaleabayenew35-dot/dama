@@ -12,7 +12,7 @@ const REQUIRED_PARAMS = ['token', 'launch'];
 const STORAGE_KEY     = 'dama_url_auth';
 const BALANCE_FETCH_TIMEOUT_MS = 55000; // 55 s — covers Render free-tier cold starts (up to ~50 s)
 const WAKEUP_UI_DELAY_MS       = 4000;
-const LOADER_SUBTITLE_SELECTOR  = '.loader-subtitle';
+const LOADER_SUBTITLE_SELECTOR  = '#loaderSubtitle';
 const BALANCE_FALLBACK_PARAM    = 'balance';
 
 // Auto-retry config on initial load failures (network / timeout only)

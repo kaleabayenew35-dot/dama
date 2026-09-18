@@ -11,75 +11,39 @@ import { getState, setState } from './state.js';
 
 /* ── Loading screen ── */
 export function initLoader(onDone, waitFor = null) {
-  const fill    = document.getElementById('progressFill');
-  const percent = document.getElementById('loaderPercent');
-  const loader  = document.getElementById('loader');
-  const menu    = document.getElementById('mainMenu');
+  const loader   = document.getElementById('loader');
+  const menu     = document.getElementById('mainMenu');
+  const subtitle = document.getElementById('loaderSubtitle');
 
-  function ease(t) {
-    return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-  }
-
-  const duration = 2200;
-  const interval = 30;
-  const steps    = duration / interval;
-  let step = 0;
-
-  let progressComplete = false;
-  let authSettled = false;
   let finished = false;
 
-  function finishLoader(showMenu) {
+  function finishLoader() {
     if (finished) return;
     finished = true;
-    clearInterval(timer);
+    if (subtitle) subtitle.textContent = 'Ready!';
     setTimeout(() => {
       loader.classList.add('fade-out');
       setTimeout(() => {
         loader.style.display = 'none';
-        if (showMenu) {
-          menu.classList.remove('hidden');
-          if (typeof onDone === 'function') onDone();
-        }
+        menu.classList.remove('hidden');
+        if (typeof onDone === 'function') onDone();
       }, 700);
-    }, 250);
+    }, 150);
   }
 
-  function maybeFinishLoader() {
-    if (progressComplete && authSettled) finishLoader(true);
-  }
-
-  const timer = setInterval(() => {
-    step++;
-    const progress = Math.min(100, Math.round(ease(step / steps) * 100));
-    fill.style.width    = progress + '%';
-    percent.textContent = progress + '%';
-
-    if (progress >= 100) {
-      progressComplete = true;
-      // If auth hasn't settled yet, switch to a pulse animation so the user
-      // knows we're still connecting rather than seeing a frozen 100% bar.
-      if (!authSettled && fill) {
-        fill.style.animation = 'loaderPulse 1.2s ease-in-out infinite';
-        if (percent) percent.textContent = '⏳';
-      }
-      maybeFinishLoader();
-    }
-  }, interval);
+  // Show "Connecting…" after 3 s if still waiting
+  const connectingTimer = setTimeout(() => {
+    if (!finished && subtitle) subtitle.textContent = 'Connecting to server…';
+  }, 3000);
 
   if (waitFor) {
-    Promise.resolve(waitFor).then(() => {
-      authSettled = true;
-      maybeFinishLoader();
-    }, () => {
-      // Auth gate rejected (backend unreachable / token invalid) but the
-      // authError.js overlay is already shown with a Retry button.
-      // Still finish the loader and show the menu so the app isn't a black screen.
-      authSettled = true;
-      maybeFinishLoader();
-    });
+    Promise.resolve(waitFor).then(
+      () => { clearTimeout(connectingTimer); finishLoader(); },
+      () => { clearTimeout(connectingTimer); finishLoader(); }   // show menu even on failure — error overlay is on top
+    );
   } else {
-    authSettled = true;
+    clearTimeout(connectingTimer);
+    finishLoader();
   }
 }
 
