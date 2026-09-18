@@ -10,10 +10,14 @@ import { showAuthError, hideAuthError } from './authError.js';
 
 const REQUIRED_PARAMS = ['token', 'launch'];
 const STORAGE_KEY     = 'dama_url_auth';
-const BALANCE_FETCH_TIMEOUT_MS = 25000; // generous timeout for cold backend wakeups
-const WAKEUP_UI_DELAY_MS       = 5000;
+const BALANCE_FETCH_TIMEOUT_MS = 55000; // 55 s — covers Render free-tier cold starts (up to ~50 s)
+const WAKEUP_UI_DELAY_MS       = 4000;
 const LOADER_SUBTITLE_SELECTOR  = '.loader-subtitle';
 const BALANCE_FALLBACK_PARAM    = 'balance';
+
+// Auto-retry config on initial load failures (network / timeout only)
+const MAX_AUTO_RETRIES    = 4;   // attempts after the first failure
+const AUTO_RETRY_DELAY_MS = 3000; // wait between auto-retries
 
 let _authGate = null;
 
@@ -196,7 +200,11 @@ function showOfflineOverlay() {
 }
 
 function showAccountLoadFailureOverlay(onRetry) {
-  showAuthError('We couldn\'t verify your account details from the backend. Please contact the admin or try again.', onRetry);
+  showAuthError(
+    'We couldn\'t verify your account details from the backend. The server may be waking up — please wait or retry.',
+    onRetry,
+    15000  // auto-retry after 15 s
+  );
 }
 
 /* ── Balance display / spinner helpers ───────────────────────── */
@@ -229,12 +237,22 @@ function setLoaderSubtitle(text) {
   if (subtitle) subtitle.textContent = text;
 }
 
+let _wakeCounterInterval = null;
+
 function showWakingUpMessage(show) {
   const subtitle = document.querySelector(LOADER_SUBTITLE_SELECTOR);
   if (!subtitle) return;
+
   if (show) {
-    subtitle.textContent = 'Waking up the server, this may take a moment...';
+    let secs = 0;
+    subtitle.textContent = 'Waking up the server…';
+    if (_wakeCounterInterval) clearInterval(_wakeCounterInterval);
+    _wakeCounterInterval = setInterval(() => {
+      secs++;
+      subtitle.textContent = `Waking up the server… (${secs}s)`;
+    }, 1000);
   } else {
+    if (_wakeCounterInterval) { clearInterval(_wakeCounterInterval); _wakeCounterInterval = null; }
     subtitle.textContent = 'Ethiopian Checkers';
   }
 }
@@ -275,9 +293,15 @@ export async function refreshBalance(silent = false) {
   try {
     const data = await fetchPlayerBalance(auth.token, auth.launch);
     if (data.balance === null || data.username === null) {
+      // Don't flash an error on periodic silent refreshes — just skip quietly
+      if (silent) {
+        console.info('[urlAuth] refreshBalance: got null data, skipping silently');
+        return;
+      }
       showAuthError('We couldn\'t verify your account details from the backend. Please contact the admin or try again.', () => refreshBalance(false));
       return;
     }
+    hideAuthError();
     updateBalanceDisplay(data.balance);
     window.DAMA_USERNAME = data.username;
   } catch (err) {
@@ -287,7 +311,8 @@ export async function refreshBalance(silent = false) {
       return;
     }
     console.warn('[urlAuth] refreshBalance failed:', err.message);
-    if (!silent) showAuthError('We couldn\'t connect to the game server. Please contact the admin or try again.', () => refreshBalance(false));
+    // Only show error overlay for manual (non-silent) refresh failures
+    if (!silent) showAuthError('We couldn\'t connect to the game server. Please check your connection and try again.', () => refreshBalance(false));
   } finally {
     if (!silent) setBalanceLoading(false);
   }
@@ -320,23 +345,44 @@ export function initUrlAuth() {
     window.DAMA_USERNAME = 'Player';
     window.DAMA_BALANCE  = null;
 
-    setBalanceLoading(true);
-    const wakeTimer = setTimeout(() => showWakingUpMessage(true), WAKEUP_UI_DELAY_MS);
+    /**
+     * Attempt the balance fetch with auto-retry on transient failures.
+     * On auth rejection (401/403) — stop immediately, show Access Denied.
+     * On null balance/username from backend — retry (may be mid-cold-start).
+     * On network/timeout — retry up to MAX_AUTO_RETRIES times, then show error.
+     */
+    async function attempt(retriesLeft) {
+      setBalanceLoading(true);
+      const wakeTimer = setTimeout(() => showWakingUpMessage(true), WAKEUP_UI_DELAY_MS);
 
-    fetchPlayerBalance(params.token, params.launch)
-      .then(data => {
+      try {
+        const data = await fetchPlayerBalance(params.token, params.launch);
+
         clearTimeout(wakeTimer);
         showWakingUpMessage(false);
         setBalanceLoading(false);
 
+        // Backend returned nulls — the owner backend or launch-token
+        // verification is still waking up. Auto-retry if we have attempts left.
         if (data.balance === null || data.username === null) {
-          const err = new Error('Could not load account data from backend.');
-          gate.reject(err);
-          showAccountLoadFailureOverlay(() => initUrlAuth());
+          if (retriesLeft > 0) {
+            console.warn(`[urlAuth] Got null balance/username — retrying in ${AUTO_RETRY_DELAY_MS}ms (${retriesLeft} left)`);
+            _showRetryingStatus(retriesLeft);
+            setTimeout(() => attempt(retriesLeft - 1), AUTO_RETRY_DELAY_MS);
+            return;
+          }
+          // Exhausted retries — show manual error with retry button
+          gate.reject(new Error('Could not load account data from backend.'));
+          showAccountLoadFailureOverlay(() => {
+            hideAuthError();
+            attempt(MAX_AUTO_RETRIES);
+          });
           resolve(params);
           return;
         }
 
+        // Success
+        _hideRetryingStatus();
         updateBalanceDisplay(data.balance);
         window.DAMA_USERNAME = data.username;
         const nameEl = document.getElementById('tgName');
@@ -356,15 +402,15 @@ export function initUrlAuth() {
         }
 
         resolve(params);
-      })
-      .catch(err => {
+
+      } catch (err) {
         clearTimeout(wakeTimer);
         showWakingUpMessage(false);
         setBalanceLoading(false);
 
-        gate.reject(err);
-
+        // Hard auth rejection — don't retry, show Access Denied
         if (shouldTreatBalanceFetchAsNonBlocking(err)) {
+          gate.reject(err);
           if (fallbackBalance !== null) updateBalanceDisplay(fallbackBalance);
           showInvalidOverlay(['token', 'launch'], {
             title: 'Access Denied',
@@ -375,11 +421,38 @@ export function initUrlAuth() {
           return;
         }
 
-        console.error('[urlAuth] Failed to fetch player balance:', err.message);
-        showAccountLoadFailureOverlay(() => initUrlAuth());
+        // Transient network / timeout failure — auto-retry
+        if (retriesLeft > 0) {
+          console.warn(`[urlAuth] Fetch failed (${err.message}) — retrying in ${AUTO_RETRY_DELAY_MS}ms (${retriesLeft} left)`);
+          _showRetryingStatus(retriesLeft);
+          setTimeout(() => attempt(retriesLeft - 1), AUTO_RETRY_DELAY_MS);
+          return;
+        }
+
+        // Exhausted all retries — show manual error overlay
+        console.error('[urlAuth] Failed to fetch player balance after all retries:', err.message);
+        gate.reject(err);
+        showAccountLoadFailureOverlay(() => {
+          hideAuthError();
+          attempt(MAX_AUTO_RETRIES);
+        });
         resolve(params);
-      });
+      }
+    }
+
+    attempt(MAX_AUTO_RETRIES);
   });
+}
+
+/** Show a subtle "retrying…" message in the loader subtitle */
+function _showRetryingStatus(retriesLeft) {
+  const subtitle = document.querySelector(LOADER_SUBTITLE_SELECTOR);
+  if (subtitle) subtitle.textContent = `Connecting to server… (retrying ${MAX_AUTO_RETRIES - retriesLeft + 1}/${MAX_AUTO_RETRIES})`;
+}
+
+function _hideRetryingStatus() {
+  const subtitle = document.querySelector(LOADER_SUBTITLE_SELECTOR);
+  if (subtitle) subtitle.textContent = 'Ethiopian Checkers';
 }
 
 /**
