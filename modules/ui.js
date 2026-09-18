@@ -66,7 +66,11 @@ export function initLoader(onDone, waitFor = null) {
       authSettled = true;
       maybeFinishLoader();
     }, () => {
-      finishLoader(false);
+      // Auth gate rejected (backend unreachable / token invalid) but the
+      // authError.js overlay is already shown with a Retry button.
+      // Still finish the loader and show the menu so the app isn't a black screen.
+      authSettled = true;
+      maybeFinishLoader();
     });
   } else {
     authSettled = true;

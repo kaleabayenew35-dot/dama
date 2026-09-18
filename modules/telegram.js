@@ -62,29 +62,25 @@ export function populateTelegramUser(onComplete) {
     window.tgUserId    = String(user.id);
     window.tgUserPhoto = user.photo_url || null;
 
-  } else if (window.DAMA_USERNAME && window.DAMA_PHONE) {
-    // ── URL-param user (non-Telegram browser) ────────────────────────────────
+  } else if (window.DAMA_USERNAME) {
+    // ── URL-param user (non-Telegram browser, launched via system-backend link) ──
+    // urlAuth.js sets window.DAMA_USERNAME from the verified launch token.
+    // We use the username as the stable player ID since phone is never exposed
+    // to the frontend.
     const name = window.DAMA_USERNAME;
     nameEl.textContent = name;
 
     const initials = name.slice(0, 2).toUpperCase();
     avatarEl.textContent = initials || '♟';
 
-    // Use phone number as stable unique ID.
-    // Strip to last 10 digits (local format) to keep ID stable regardless
-    // of whether phone was passed as 0909095880 or 251909095880.
-    const rawPhone  = String(window.DAMA_PHONE).replace(/\D/g, '');
-    // Take last 10 digits — covers both "0909095880" and "251909095880"
-    const localPhone = rawPhone.slice(-10);
     window.tgUserName  = name;
-    window.tgUserId    = 'ph_' + localPhone;
+    window.tgUserId    = 'usr_' + name.toLowerCase().replace(/[^a-z0-9]/g, '_');
     window.tgUserPhoto = null;
 
-    // Pre-seed balance from URL param (real balance will update async via urlAuth)
+    // Pre-seed balance from urlAuth result
     if (window.DAMA_BALANCE !== undefined && window.DAMA_BALANCE !== null) {
       const balEl = document.getElementById('myBalance');
       if (balEl) balEl.textContent = Number(window.DAMA_BALANCE).toLocaleString();
-
     }
 
   } else {
