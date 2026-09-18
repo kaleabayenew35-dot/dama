@@ -173,3 +173,8 @@
   to   { opacity:0; transform: scale(1.05); pointer-events: none; }
 }
 
+/* Progress bar pulse — shown while waiting for backend after 100% */
+@keyframes loaderPulse {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
