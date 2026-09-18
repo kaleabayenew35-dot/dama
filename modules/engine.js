@@ -701,16 +701,11 @@ export function endGame(winner, reason, isRemote = false, settlement = null) {
           if (res.ok) {
             const json = await res.json();
             const s    = json?.data?.settlement;
-            if (s && typeof s.winnerPayout === 'number') {
-              const prizeEl = document.getElementById('ms-prize');
-              if (prizeEl && aiResult === 'win') prizeEl.textContent = s.winnerPayout.toLocaleString();
+            if (s) {
+              // Store settlement on G so showWinModal can use it
+              G._settlement = s;
             }
-            const _rb = getState('refreshBalance');
-            if (typeof _rb === 'function') setTimeout(() => _rb(true), 500);
-            setTimeout(() => {
-              PlayerRegistry.fetchPlayers().then(() => renderPlayerList());
-              PlayerRegistry.fetchCurrentPlayer(myId);
-            }, 600);
+            setTimeout(() => PlayerRegistry.fetchPlayers().then(() => renderPlayerList()), 600);
           }
         }).catch(() => {});
       } else {
@@ -746,12 +741,24 @@ export function endGame(winner, reason, isRemote = false, settlement = null) {
     }
   }
 
-  const betAmt = G.betAmount || getState('currentBet') || 0;
-  let winnerPayout = 0;
-  if (settlement && typeof settlement.winnerPayout === 'number') winnerPayout = settlement.winnerPayout;
-  else if (betAmt > 0) winnerPayout = Math.round(betAmt * 2 * 0.9);
+  const isDraw      = winner === null || winner === undefined;
+  const betAmt      = G.betAmount || getState('currentBet') || 0;
+  let winnerPayout  = 0;
+  let drawRefund    = 0;
 
-  setTimeout(() => showWinModal(wName, reason, iLocalWin, betAmt, winnerPayout), 400);
+  if (settlement) {
+    if (typeof settlement.winnerPayout === 'number') winnerPayout = settlement.winnerPayout;
+    if (typeof settlement.refund       === 'number') drawRefund   = settlement.refund;
+  } else if (betAmt > 0) {
+    winnerPayout = Math.round(betAmt * 2 * 0.9);
+    drawRefund   = Math.round(betAmt * 0.95);
+  }
+
+  setTimeout(() => showWinModal(wName, reason, iLocalWin, betAmt, winnerPayout, isDraw, drawRefund), 400);
+
+  // Refresh real balance from server after a short delay
+  const _rb = getState('refreshBalance');
+  if (typeof _rb === 'function') setTimeout(() => _rb(true), 1200);
 }
 
 /* ── UI helpers ── */
@@ -893,8 +900,8 @@ function onTurnTimeout() {
 }
 
 /* ── Win modal ── */
-function showWinModal(name, reason, iLocalWin = false, betAmt = 0, winnerPayout = 0) {
-  document.getElementById('winTitle').textContent    = name + ' Wins!';
+function showWinModal(name, reason, iLocalWin = false, betAmt = 0, winnerPayout = 0, isDraw = false, drawRefund = 0) {
+  document.getElementById('winTitle').textContent    = isDraw ? 'Draw!' : name + ' Wins!';
   document.getElementById('winSub').textContent      = reason + '. Well played!';
   document.getElementById('ms-moves').textContent    = G.moveCount;
   document.getElementById('ms-time').textContent     = formatTime((G.timers[BLACK]||0) + (G.timers[WHITE]||0));
@@ -902,10 +909,50 @@ function showWinModal(name, reason, iLocalWin = false, betAmt = 0, winnerPayout 
 
   const prizeWrap = document.getElementById('ms-prize-wrap');
   const prizeEl   = document.getElementById('ms-prize');
+  const prizeLbl  = prizeWrap?.querySelector('.ms-prize-label');
+
   if (prizeWrap && prizeEl) {
-    const prize = winnerPayout > 0 ? winnerPayout : (betAmt > 0 ? Math.round(betAmt * 2 * 0.9) : 0);
-    if (iLocalWin && prize > 0) { prizeEl.textContent = prize.toLocaleString(); prizeWrap.classList.remove('hidden'); }
-    else prizeWrap.classList.add('hidden');
+    if (isDraw && betAmt > 0) {
+      // Draw: both players lose a small fee, rest is refunded
+      const refund = drawRefund > 0 ? drawRefund : Math.round(betAmt * 0.95);
+      const fee    = betAmt - refund;
+      if (prizeLbl) prizeLbl.textContent = '🤝 Draw — Partial Refund';
+      prizeEl.textContent = refund.toLocaleString();
+      prizeWrap.classList.remove('hidden');
+      prizeWrap.style.borderColor = 'rgba(240,201,74,.4)';
+      // Immediately update displayed balance: subtract fee
+      const cur = Number(window.DAMA_BALANCE ?? 0);
+      if (cur > 0) {
+        window.DAMA_BALANCE = Math.max(0, cur - fee);
+        const balEl = document.getElementById('myBalance');
+        if (balEl) balEl.textContent = Number(window.DAMA_BALANCE).toLocaleString();
+        window.dispatchEvent(new CustomEvent('dama-balance-changed', { detail: window.DAMA_BALANCE }));
+      }
+    } else if (!isDraw && betAmt > 0) {
+      const prize = winnerPayout > 0 ? winnerPayout : Math.round(betAmt * 2 * 0.9);
+      if (iLocalWin) {
+        if (prizeLbl) prizeLbl.textContent = '🏆 You Win';
+        prizeEl.textContent = '+' + prize.toLocaleString();
+        prizeWrap.classList.remove('hidden');
+        prizeWrap.style.borderColor = 'rgba(76,222,128,.4)';
+        // Immediately credit balance
+        const cur = Number(window.DAMA_BALANCE ?? 0);
+        window.DAMA_BALANCE = cur + prize;
+        const balEl = document.getElementById('myBalance');
+        if (balEl) balEl.textContent = Number(window.DAMA_BALANCE).toLocaleString();
+        window.dispatchEvent(new CustomEvent('dama-balance-changed', { detail: window.DAMA_BALANCE }));
+      } else {
+        if (prizeLbl) prizeLbl.textContent = '💸 You Lost';
+        prizeEl.textContent = '−' + betAmt.toLocaleString();
+        prizeWrap.classList.remove('hidden');
+        prizeWrap.style.borderColor = 'rgba(231,76,60,.4)';
+        prizeWrap.style.color = '#e74c3c';
+        // Immediately deduct from balance display (already deducted at game start)
+        // Balance stays as-is; loser's bet was already taken at challenge_accept
+      }
+    } else {
+      prizeWrap.classList.add('hidden');
+    }
   }
 
   const modal = document.getElementById('winModal');
