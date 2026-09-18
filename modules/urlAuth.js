@@ -7,6 +7,7 @@
 ═══════════════════════════════════════════════════ */
 
 import { showAuthError, hideAuthError } from './authError.js';
+import { apiUrl } from './socket.js';
 
 const REQUIRED_PARAMS = ['token', 'launch'];
 const STORAGE_KEY     = 'dama_url_auth';
@@ -260,7 +261,6 @@ function showWakingUpMessage(show) {
 /* ── Single call to dama-backend /player-balance ─────────────── */
 async function fetchPlayerBalance(token, launch) {
   console.info('[urlAuth] fetchPlayerBalance timeout set to', BALANCE_FETCH_TIMEOUT_MS, 'ms');
-  const { apiUrl } = await import('./socket.js');
   const res = await fetch(`${apiUrl}/player-balance`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },

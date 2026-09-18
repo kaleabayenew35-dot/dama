@@ -8,6 +8,7 @@
 import { tgHaptic } from './telegram.js';
 import { PlayerRegistry, seedDemoPlayers, fetchWithToken } from './registry.js';
 import { getState, setState } from './state.js';
+import { apiUrl } from './socket.js';
 
 /* ── Loading screen ── */
 export function initLoader(onDone, waitFor = null) {
@@ -273,7 +274,6 @@ function blend(hex, target, amt) {
 async function fetchOwnedFromBackend() {
   if (!getState('tgUserId')) return;
   try {
-    const { apiUrl } = await import('./socket.js');
     const res = await fetchWithToken(`${apiUrl}/players/${getState('tgUserId')}/owned`);
     if (res.ok) {
       const data = await res.json();
