@@ -57,6 +57,12 @@ export function initLoader(onDone, waitFor = null) {
 
     if (progress >= 100) {
       progressComplete = true;
+      // If auth hasn't settled yet, switch to a pulse animation so the user
+      // knows we're still connecting rather than seeing a frozen 100% bar.
+      if (!authSettled && fill) {
+        fill.style.animation = 'loaderPulse 1.2s ease-in-out infinite';
+        if (percent) percent.textContent = '⏳';
+      }
       maybeFinishLoader();
     }
   }, interval);
