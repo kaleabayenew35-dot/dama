@@ -509,6 +509,7 @@ export function executeMove(from, move, isRemote = false) {
       } else {
         setStatus('⚡ Continue capturing! Choose next square.');
       }
+      startCountdown();
       return;
     }
   }
@@ -832,10 +833,15 @@ function stopCountdown() {
 function updateCountdownUI() {
   const secs = Math.ceil(G.countdown), urgent = secs <= 5;
   const isBlackTurn = G.turn === BLACK;
-  [document.getElementById('cd-turn-1'), document.getElementById('cd-turn-2')].forEach(el => {
+  const blackCountdown = document.getElementById('cd-turn-1');
+  const whiteCountdown = document.getElementById('cd-turn-2');
+  [
+    [blackCountdown, isBlackTurn],
+    [whiteCountdown, !isBlackTurn],
+  ].forEach(([el, isActive]) => {
     if (!el) return;
-    el.textContent  = secs;
-    el.className    = 'cd-turn' + (urgent ? ' cd-urgent' : '');
+    el.textContent = isActive ? secs : '—';
+    el.className = 'cd-turn' + (isActive && urgent ? ' cd-urgent' : '');
     el.style.display = 'flex';
   });
   document.getElementById('panel1')?.classList.toggle('ss-danger', isBlackTurn  && urgent);
@@ -854,9 +860,9 @@ function updateStrikeDots(player, count) {
 
 function startCountdown() {
   stopCountdown();
-  if (G.mode === 'ai' && G.turn === WHITE) return;
   G.countdown = G.TURN_SECONDS;
   updateCountdownUI();
+  if (G.mode === 'ai' && G.turn === WHITE) return;
   G.countdownInterval = setInterval(() => {
     if (G.gameOver) { stopCountdown(); return; }
     G.countdown -= 1;
