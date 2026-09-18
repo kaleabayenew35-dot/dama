@@ -440,8 +440,37 @@ Socket.on('game_over', (msg) => {
       winnerColor = aog.myColor === 'black' ? 2 : 1;
     }
   }
+  // Pass settlement from server — contains the real settled amounts
   endGame(winnerColor, msg.reason, true, msg.settlement || null);
-  setTimeout(() => refreshBalance(true), 800);
+
+  // Immediately reflect balance change from settlement in the UI,
+  // then do a silent server refresh to confirm the real value.
+  const s = msg.settlement;
+  if (s) {
+    const isWin  = msg.winnerId === getState('tgUserId');
+    const isDraw = !msg.winnerId;
+    const cur    = Number(window.DAMA_BALANCE ?? 0);
+    let newBal   = cur;
+
+    if (isDraw && s.refund > 0) {
+      // Draw: bet was already deducted; now add the refund back
+      newBal = cur + s.refund;
+    } else if (isWin && s.winnerPayout > 0) {
+      // Win: bet was already deducted; add the full payout back
+      newBal = cur + s.winnerPayout;
+    }
+    // Loss: balance was already deducted at challenge_accept — no change needed
+
+    if (newBal !== cur) {
+      window.DAMA_BALANCE = Math.max(0, newBal);
+      const balEl = document.getElementById('myBalance');
+      if (balEl) balEl.textContent = Number(window.DAMA_BALANCE).toLocaleString();
+      window.dispatchEvent(new CustomEvent('dama-balance-changed', { detail: window.DAMA_BALANCE }));
+    }
+  }
+
+  // Confirm with real server value after a short delay
+  setTimeout(() => refreshBalance(true), 1500);
 });
 
 Socket.on('rematch_request', (msg) => {
@@ -474,14 +503,35 @@ Socket.on('player_updated', (msg) => {
       };
       PlayerRegistry.save(list);
     }
-    if (msg.player.id === getState('tgUserId')) refreshBalance();
+
+    // If this is an update for the local player, reflect the new balance immediately.
+    // Use the dama-backend balance directly — the owner backend will sync later.
+    if (msg.player.id === getState('tgUserId') && typeof msg.player.balance === 'number') {
+      window.DAMA_BALANCE = msg.player.balance;
+      const balEl = document.getElementById('myBalance');
+      if (balEl) balEl.textContent = Number(msg.player.balance).toLocaleString();
+      window.dispatchEvent(new CustomEvent('dama-balance-changed', { detail: msg.player.balance }));
+    }
   }
   if (getState('playerReady') && getState('currentBet') > 0) renderPlayerList();
 });
 
 Socket.on('opponent_left', () => {
   const statusBar = document.getElementById('gameStatus');
-  if (statusBar) statusBar.innerHTML = `<span style="color:var(--accent);">⚠️ Opponent disconnected! Reconnecting...</span>`;
+  if (statusBar) {
+    let secs = 5;
+    statusBar.innerHTML = `<span style="color:var(--accent);">⚠️ Opponent disconnected! They will forfeit in ${secs}s…</span>`;
+    const countdown = setInterval(() => {
+      secs--;
+      if (!statusBar) { clearInterval(countdown); return; }
+      if (secs <= 0) {
+        clearInterval(countdown);
+        statusBar.innerHTML = `<span style="color:var(--accent);">⚠️ Opponent forfeited — waiting for result…</span>`;
+      } else {
+        statusBar.innerHTML = `<span style="color:var(--accent);">⚠️ Opponent disconnected! They will forfeit in ${secs}s…</span>`;
+      }
+    }, 1000);
+  }
 });
 
 Socket.on('opponent_rejoined', () => {

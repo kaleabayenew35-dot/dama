@@ -964,12 +964,16 @@ function showWinModal(name, reason, iLocalWin = false, betAmt = 0, winnerPayout 
       prizeEl.textContent = refund.toLocaleString();
       prizeWrap.classList.remove('hidden');
       prizeWrap.style.borderColor = 'rgba(240,201,74,.4)';
-      const cur = Number(window.DAMA_BALANCE ?? 0);
-      if (cur > 0) {
-        window.DAMA_BALANCE = Math.max(0, cur - fee);
-        const balEl = document.getElementById('myBalance');
-        if (balEl) balEl.textContent = Number(window.DAMA_BALANCE).toLocaleString();
-        window.dispatchEvent(new CustomEvent('dama-balance-changed', { detail: window.DAMA_BALANCE }));
+      prizeWrap.style.color = '';
+      // Balance update only for non-online-PvP (online PvP handled by socket events)
+      if (!G.isOnlinePvP) {
+        const cur = Number(window.DAMA_BALANCE ?? 0);
+        if (cur > 0) {
+          window.DAMA_BALANCE = Math.max(0, cur - fee);
+          const balEl = document.getElementById('myBalance');
+          if (balEl) balEl.textContent = Number(window.DAMA_BALANCE).toLocaleString();
+          window.dispatchEvent(new CustomEvent('dama-balance-changed', { detail: window.DAMA_BALANCE }));
+        }
       }
     } else if (!isDraw && betAmt > 0) {
       const prize = winnerPayout > 0 ? winnerPayout : Math.round(betAmt * 2 * 0.9);
@@ -978,11 +982,15 @@ function showWinModal(name, reason, iLocalWin = false, betAmt = 0, winnerPayout 
         prizeEl.textContent = '+' + prize.toLocaleString();
         prizeWrap.classList.remove('hidden');
         prizeWrap.style.borderColor = 'rgba(76,222,128,.4)';
-        const cur = Number(window.DAMA_BALANCE ?? 0);
-        window.DAMA_BALANCE = cur + prize;
-        const balEl = document.getElementById('myBalance');
-        if (balEl) balEl.textContent = Number(window.DAMA_BALANCE).toLocaleString();
-        window.dispatchEvent(new CustomEvent('dama-balance-changed', { detail: window.DAMA_BALANCE }));
+        prizeWrap.style.color = '';
+        // Balance update only for non-online-PvP
+        if (!G.isOnlinePvP) {
+          const cur = Number(window.DAMA_BALANCE ?? 0);
+          window.DAMA_BALANCE = cur + prize;
+          const balEl = document.getElementById('myBalance');
+          if (balEl) balEl.textContent = Number(window.DAMA_BALANCE).toLocaleString();
+          window.dispatchEvent(new CustomEvent('dama-balance-changed', { detail: window.DAMA_BALANCE }));
+        }
       } else {
         if (prizeLbl) prizeLbl.textContent = '💸 You Lost';
         prizeEl.textContent = '−' + betAmt.toLocaleString();
