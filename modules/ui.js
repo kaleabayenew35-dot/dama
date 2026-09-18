@@ -621,13 +621,13 @@ export function applyPieceTheme(theme) {
   }
 }
 
-/* ── Countdown timer (15s, repeating) ── */
+/* ── Countdown timer (20s, repeating) ── */
 export function initCountdown() {
   const numEl = document.getElementById('cdNum');
   const arcEl = document.getElementById('cdArc');
   if (!numEl || !arcEl) return;
 
-  const TOTAL = 15;
+  const TOTAL = 20;
   const CIRC  = 106.8;
   let remaining = TOTAL;
 
