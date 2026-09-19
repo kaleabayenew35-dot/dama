@@ -914,6 +914,9 @@ function _closeWinModal() {
   if (!modal) return;
   modal.classList.add('hidden');
   modal.classList.remove('modal-show');
+  // Restore actions visibility for the next game
+  const actions = modal.querySelector('.modal-actions');
+  if (actions) actions.style.visibility = '';
 }
 
 function _startWinCountdown(onExpire) {
@@ -924,8 +927,7 @@ function _startWinCountdown(onExpire) {
   const wrap = document.getElementById('winCountdownWrap');
 
   if (wrap) wrap.style.display = '';
-  if (bar)  {
-    // Reset then trigger animation
+  if (bar) {
     bar.classList.remove('running');
     void bar.offsetWidth; // reflow to restart animation
     bar.classList.add('running');
@@ -933,12 +935,14 @@ function _startWinCountdown(onExpire) {
 
   let secs = 3;
   if (txt) txt.textContent = `Closing in ${secs}s`;
+
   _winCountdownInterval = setInterval(() => {
     secs--;
     if (txt) txt.textContent = secs > 0 ? `Closing in ${secs}s` : 'Closing…';
-    if (secs <= 0) { _clearWinTimers(); }
+    // Don't clear timers here — let the setTimeout be the single source of truth
   }, 1000);
 
+  // Single authoritative close: fires after exactly 3 seconds
   _winAutoCloseTimer = setTimeout(() => {
     _clearWinTimers();
     if (typeof onExpire === 'function') onExpire();
@@ -1031,6 +1035,12 @@ function showWinModal(name, reason, iLocalWin = false, betAmt = 0, winnerPayout 
     if (wrap) wrap.style.display = 'none';
   }
 
+  // Hide the actions row so neither player can double-act
+  function hideActions() {
+    const actions = document.querySelector('#winModal .modal-actions');
+    if (actions) actions.style.visibility = 'hidden';
+  }
+
   // Helper: close + go to menu
   function goMenu() {
     _closeWinModal();
@@ -1045,12 +1055,14 @@ function showWinModal(name, reason, iLocalWin = false, betAmt = 0, winnerPayout 
 
     playAgainBtn?.addEventListener('click', () => {
       cancelAutoClose();
+      hideActions();
       clearRematchUi();
       requestRematch();
     }, { once: true });
 
     menuBtn?.addEventListener('click', () => {
       cancelAutoClose();
+      hideActions();
       hideRematchPrompt();
       goMenu();
     });
@@ -1066,6 +1078,7 @@ function showWinModal(name, reason, iLocalWin = false, betAmt = 0, winnerPayout 
 
     playAgainBtn?.addEventListener('click', () => {
       cancelAutoClose();
+      hideActions();
       _closeWinModal();
       if (G.mode === 'ai') startGame('ai', G.opponent || null);
       else startGame('pvp', G.opponent || null);
@@ -1073,6 +1086,7 @@ function showWinModal(name, reason, iLocalWin = false, betAmt = 0, winnerPayout 
 
     menuBtn?.addEventListener('click', () => {
       cancelAutoClose();
+      hideActions();
       goMenu();
     });
 
@@ -1081,9 +1095,9 @@ function showWinModal(name, reason, iLocalWin = false, betAmt = 0, winnerPayout 
     return;
   }
 
-  // ── Fallback (should not normally be reached) ─────────────────
-  playAgainBtn?.addEventListener('click', () => { cancelAutoClose(); _closeWinModal(); }, { once: true });
-  menuBtn?.addEventListener('click', () => { cancelAutoClose(); goMenu(); });
+  // ── Fallback ─────────────────────────────────────────────────
+  playAgainBtn?.addEventListener('click', () => { cancelAutoClose(); hideActions(); _closeWinModal(); }, { once: true });
+  menuBtn?.addEventListener('click', () => { cancelAutoClose(); hideActions(); goMenu(); });
   _startWinCountdown(goMenu);
 }
 
