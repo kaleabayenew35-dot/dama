@@ -440,37 +440,12 @@ Socket.on('game_over', (msg) => {
       winnerColor = aog.myColor === 'black' ? 2 : 1;
     }
   }
-  // Pass settlement from server — contains the real settled amounts
+  // Pass the settlement data from the server so the win modal can show correct numbers
   endGame(winnerColor, msg.reason, true, msg.settlement || null);
-
-  // Immediately reflect balance change from settlement in the UI,
-  // then do a silent server refresh to confirm the real value.
-  const s = msg.settlement;
-  if (s) {
-    const isWin  = msg.winnerId === getState('tgUserId');
-    const isDraw = !msg.winnerId;
-    const cur    = Number(window.DAMA_BALANCE ?? 0);
-    let newBal   = cur;
-
-    if (isDraw && s.refund > 0) {
-      // Draw: bet was already deducted; now add the refund back
-      newBal = cur + s.refund;
-    } else if (isWin && s.winnerPayout > 0) {
-      // Win: bet was already deducted; add the full payout back
-      newBal = cur + s.winnerPayout;
-    }
-    // Loss: balance was already deducted at challenge_accept — no change needed
-
-    if (newBal !== cur) {
-      window.DAMA_BALANCE = Math.max(0, newBal);
-      const balEl = document.getElementById('myBalance');
-      if (balEl) balEl.textContent = Number(window.DAMA_BALANCE).toLocaleString();
-      window.dispatchEvent(new CustomEvent('dama-balance-changed', { detail: window.DAMA_BALANCE }));
-    }
-  }
-
-  // Confirm with real server value after a short delay
-  setTimeout(() => refreshBalance(true), 1500);
+  // Balance display is updated immediately by the player_updated event that the server
+  // broadcasts alongside game_over — no need to estimate here.
+  // Do a silent server confirm after 2s just in case player_updated was missed.
+  setTimeout(() => refreshBalance(true), 2000);
 });
 
 Socket.on('rematch_request', (msg) => {
