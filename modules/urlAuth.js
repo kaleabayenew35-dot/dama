@@ -208,6 +208,95 @@ function showAccountLoadFailureOverlay(onRetry) {
   );
 }
 
+/**
+ * showExpiredOverlay — shown when the launch token JWT has expired.
+ * Offers a "Reload Game" button that fetches a fresh token from system_backend.
+ */
+function showExpiredOverlay(params) {
+  document.getElementById('urlAuthBlock')?.remove();
+  document.body.style.overflow = 'hidden';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'urlAuthBlock';
+  overlay.style.cssText = [
+    'position:fixed', 'inset:0', 'z-index:99999',
+    'background:radial-gradient(ellipse at center,#1a0f00 0%,#0d0d0d 70%)',
+    'display:flex', 'flex-direction:column',
+    'align-items:center', 'justify-content:center',
+    'gap:18px', 'padding:32px 24px', 'text-align:center',
+  ].join(';');
+
+  overlay.innerHTML = `
+    <style>
+      @keyframes expiredPulse{0%,100%{transform:scale(1)}50%{transform:scale(.92)}}
+      #urlAuthBlock .exp-icon{animation:expiredPulse 2s ease-in-out infinite}
+    </style>
+    <div class="exp-icon" style="font-size:3.2rem;line-height:1;">⏰</div>
+    <div style="font-family:'Cinzel',serif;font-size:1.3rem;font-weight:900;color:#f0c94a;">
+      Session Expired
+    </div>
+    <div style="color:rgba(245,230,200,.75);font-size:.88rem;max-width:300px;line-height:1.65;">
+      Your session has expired. Tap below to get a fresh link and continue playing.
+    </div>
+    <button id="reloadGameBtn" style="
+      background:linear-gradient(135deg,#a07810,#d4a017);color:#1a1005;
+      border:none;border-radius:999px;padding:13px 32px;
+      font-weight:800;cursor:pointer;font-family:inherit;font-size:.95rem;
+      box-shadow:0 4px 14px rgba(212,160,23,.35);margin-top:4px;">
+      🔄 Reload Game
+    </button>
+    <div id="reloadStatus" style="font-size:.75rem;color:rgba(245,230,200,.45);min-height:1.2em;"></div>`;
+
+  const mount = () => {
+    const loader = document.getElementById('loader');
+    if (loader) loader.style.display = 'none';
+    document.body.appendChild(overlay);
+
+    document.getElementById('reloadGameBtn')?.addEventListener('click', async () => {
+      const btn    = document.getElementById('reloadGameBtn');
+      const status = document.getElementById('reloadStatus');
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Getting fresh link…'; }
+
+      try {
+        // Fetch a fresh launch token from system_backend using the stored GT- token
+        const SYSTEM_BACKEND = 'https://system-backend-1u5m.onrender.com';
+        const res = await fetch(`${SYSTEM_BACKEND}/api/admin/games/game-tokens/refresh-launch`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            token:    params?.token || new URLSearchParams(window.location.search).get('token'),
+            phone:    window.DAMA_PHONE    || '',
+            username: window.DAMA_USERNAME || '',
+            balance:  window.DAMA_BALANCE  ?? 0,
+          }),
+        });
+        const json = await res.json();
+        if (res.ok && json.launch) {
+          // Update URL with fresh launch token and reload
+          const url = new URL(window.location.href);
+          url.searchParams.set('token',  json.token);
+          url.searchParams.set('launch', json.launch);
+          window.location.href = url.toString();
+        } else {
+          throw new Error(json.error || 'Failed to refresh');
+        }
+      } catch (e) {
+        if (status) status.textContent = 'Could not refresh. Please go back to Telegram.';
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '🔄 Reload Game';
+        }
+        // Fallback: close the Mini App so user can tap Play again in Telegram
+        setTimeout(() => {
+          if (window.Telegram?.WebApp?.close) window.Telegram.WebApp.close();
+        }, 2000);
+      }
+    });
+  };
+
+  if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
+}
+
 /* ── Balance display / spinner helpers ───────────────────────── */
 
 export function updateBalanceDisplay(balance) {
@@ -414,10 +503,7 @@ export function initUrlAuth() {
         if (shouldTreatBalanceFetchAsNonBlocking(err)) {
           gate.reject(err);
           if (fallbackBalance !== null) updateBalanceDisplay(fallbackBalance);
-          showInvalidOverlay(['token', 'launch'], {
-            title: 'Access Denied',
-            description: 'This access link is invalid or expired.<br>Please request a fresh link from your administrator.',
-          });
+          showExpiredOverlay(params);
           console.info('[urlAuth] Balance lookup skipped after auth rejection:', err.message);
           resolve(params);
           return;
